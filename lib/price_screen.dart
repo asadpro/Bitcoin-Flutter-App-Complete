@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:open_settings/open_settings.dart' show OpenSettings;
 import 'coin_data.dart';
-import 'dart:io' show Platform;
+import 'dart:io' show InternetAddress, Platform, SocketException;
 
 class PriceScreen extends StatefulWidget {
   const PriceScreen({Key? key}) : super(key: key);
@@ -73,6 +74,7 @@ class _PriceScreenState extends State<PriceScreen> {
   @override
   void initState() {
     super.initState();
+    checkInternetConnection();
     getData();
   }
 
@@ -93,8 +95,23 @@ class _PriceScreenState extends State<PriceScreen> {
     );
   }
 
+  bool connectionStatus = true;
+
+  checkInternetConnection() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+        connectionStatus = true;
+      }
+    } on SocketException catch (_) {
+      connectionStatus = false;
+    }
+    return connectionStatus;
+  }
+
   @override
   Widget build(BuildContext context) {
+    checkInternetConnection();
     return Scaffold(
       appBar: AppBar(
         title: Text('🤑 Coin Ticker'),
@@ -103,8 +120,46 @@ class _PriceScreenState extends State<PriceScreen> {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
+        children: [
           makeCards(),
+          !connectionStatus
+              ? AlertDialog(
+                  shape: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey, width: 2),
+                      borderRadius: BorderRadius.circular(16.0)),
+                  title: IconButton(
+                    icon: Icon(
+                      Icons.wifi_off_outlined,
+                      color: Colors.yellow,
+                    ),
+                    iconSize: 55.0,
+                    onPressed: () {},
+                  ),
+                  content: Text(
+                    'Your are not connected to the internet please connect to internet and try again?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  actions: [
+                    Center(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.all(12)),
+                        onPressed: () => OpenSettings.openMainSetting(),
+                        icon: Icon(
+                          Icons.settings,
+                          size: 33.0,
+                        ),
+                        label: Text(
+                          'Open Setting',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Text(''),
+          Text('data'),
           Container(
             height: 150.0,
             alignment: Alignment.center,
@@ -132,26 +187,34 @@ class CryptoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0),
-      child: Card(
-        color: Colors.lightBlueAccent,
-        elevation: 5.0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10.0),
-        ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
-          child: Text(
-            '1 $cryptoCurrency = $value $selectedCurrency',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 20.0,
-              color: Colors.white,
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(18.0, 18.0, 18.0, 0),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+                minHeight: 53, minWidth: 500, maxHeight: 100, maxWidth: 600),
+            child: Card(
+              color: Colors.lightBlueAccent,
+              elevation: 5.0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10.0),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 15.0, horizontal: 28.0),
+                child: Text(
+                  '1 $cryptoCurrency = $value $selectedCurrency',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 20.0,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
